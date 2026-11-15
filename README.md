@@ -16,4 +16,5 @@ Example: `python do_tree.py ~/Documents/geode-docs-2/classes/cocos2d/CCObject ~/
 
 ## Dependencies
 See `requirements.txt`
-- Install quickly with `pip install -r requirements.txt`
+- Install quickly with `pip install -r requirements.txt`.
+    - I highly recommend setting up a virtual environment first (For example you can do `python -m venv desired/path/to/venv`) and activating it (For example `source desired/path/to/venv/bin/activate`)
