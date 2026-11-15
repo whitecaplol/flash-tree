@@ -1,0 +1,11 @@
+[tool.ruff.lint]
+ignore = ["I001"]
+
+[tool.pyright]
+reportOptionalMemberAccess = "none"
+reportUnusedCallResult = "none"
+reportUnknownMemberType = "none"
+reportUnknownVariableType = "none"
+reportAny = "none"
+reportExplicitAny = "none"
+reportMissingTypeStubs = "none"
