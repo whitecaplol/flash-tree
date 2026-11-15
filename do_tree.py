@@ -3,7 +3,7 @@ import mermaid.flowchart as fl
 from bs4 import BeautifulSoup
 from pathlib import Path
 
-def main(node: Path, root_directory: Path, nodes: set[str], connections: list[tuple[str, str]]):
+def main(node: Path, root_directory: Path, nodes: set[str], connections: list[tuple[str, str]], do_backwards: bool=False):
     node_from = str(node.relative_to(root_directory)).removeprefix("classes/").replace("/", "::")
     if (node_from in nodes): return
     nodes.add(node_from)
@@ -11,11 +11,12 @@ def main(node: Path, root_directory: Path, nodes: set[str], connections: list[tu
     with open(node / "content.html", "r") as f:
         soup = BeautifulSoup(f, "lxml")
 
-        inherited_from = soup.find("span", class_="class-decl").find_all("a", class_="entity type")
-        for inherited in inherited_from:
-            link = str(inherited.get("href"))[1:]
-            derived_path = root_directory / link
-            main(derived_path, root_directory, nodes, connections)
+        if do_backwards:
+            inherited_from = soup.find("span", class_="class-decl").find_all("a", class_="entity type")
+            for inherited in inherited_from:
+                link = str(inherited.get("href"))[1:]
+                derived_path = root_directory / link
+                main(derived_path, root_directory, nodes, connections, do_backwards)
 
         derived_classes = soup.find_all("details", class_="section")[-1].find_all("div", class_="entity class")
 
@@ -27,7 +28,7 @@ def main(node: Path, root_directory: Path, nodes: set[str], connections: list[tu
 
             if derivation not in connections:
                 connections.append(derivation)
-                main(derived_path, root_directory, nodes, connections)
+                main(derived_path, root_directory, nodes, connections, do_backwards)
 
 
 if __name__ == "__main__":
@@ -37,13 +38,14 @@ if __name__ == "__main__":
     parser.add_argument("root_input", help="The file in which you want to build the tree from.", type=Path)
     parser.add_argument("root_folder", help="The directory that the flash-generated documentation is contained in.", type=Path)
     parser.add_argument("root_output", help="Where to emit the mermaid output", type=Path)
+    parser.add_argument("--backwards", help="Also retroactively look at what the class inherited from. Can be useful if you want as much of everything as possible.", action="store_true", required=False)
 
     args = parser.parse_args()
 
     nodes: set[str] = set()
     connections: list[tuple[str, str]] = []
 
-    main(args.root_input, args.root_folder, nodes, connections)
+    main(args.root_input, args.root_folder, nodes, connections, args.backwards)
 
     print(f"Statistics: {len(nodes)} classes, {len(connections)} derived class counts (edges)")
 
