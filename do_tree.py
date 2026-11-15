@@ -5,10 +5,18 @@ from pathlib import Path
 
 def main(node: Path, root_directory: Path, nodes: set[str], connections: list[tuple[str, str]]):
     node_from = str(node.relative_to(root_directory)).removeprefix("classes/").replace("/", "::")
+    if (node_from in nodes): return
     nodes.add(node_from)
 
     with open(node / "content.html", "r") as f:
         soup = BeautifulSoup(f, "lxml")
+
+        inherited_from = soup.find("span", class_="class-decl").find_all("a", class_="entity type")
+        for inherited in inherited_from:
+            link = str(inherited.get("href"))[1:]
+            derived_path = root_directory / link
+            main(derived_path, root_directory, nodes, connections)
+
         derived_classes = soup.find_all("details", class_="section")[-1].find_all("div", class_="entity class")
 
         for derived_class in derived_classes:
@@ -18,7 +26,6 @@ def main(node: Path, root_directory: Path, nodes: set[str], connections: list[tu
             derivation = (node_from, node_to)
 
             if derivation not in connections:
-                nodes.add(node_to)
                 connections.append(derivation)
                 main(derived_path, root_directory, nodes, connections)
 
@@ -38,6 +45,8 @@ if __name__ == "__main__":
 
     main(args.root_input, args.root_folder, nodes, connections)
 
+    print(f"Statistics: {len(nodes)} classes, {len(connections)} derived class counts (edges)")
+
     node_map = {node_str: fl.Node(node_str) for node_str in nodes}
     parsed_links = [fl.Link(node_map[a], node_map[b]) for a, b in connections]
     parsed_nodes = list(node_map.values())
@@ -46,12 +55,13 @@ if __name__ == "__main__":
     mermaidx.render(
         result,
         config={
-            "maxEdges": 10000,
+            "maxEdges": 100000,
             "maxTextSize": 10000000,
             "flowchart": {
                 "wrappingWidth": 300,
                 "padding": 20
             },
             "htmlLabels": False,
-        }
+        },
+        backend="js:pele",
     ).save(args.root_output)
